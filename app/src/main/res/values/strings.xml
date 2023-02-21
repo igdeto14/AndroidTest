@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">NBA Players List</string>
+    <string name="player_info">"Player information"</string>
+    <string name="team_info">"Team information"</string>
+    <string name="avg_info">"Current Season Average Information"</string>
+    <string name="games_played">"Games played: "</string>
+    <string name="mins">"Minutes played: "</string>
+    <string name="pts">"Points: "</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
