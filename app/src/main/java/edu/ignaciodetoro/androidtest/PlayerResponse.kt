@@ -2,6 +2,7 @@ package edu.ignaciodetoro.androidtest
 
 import android.os.Parcel
 import android.os.Parcelable
+import com.j256.ormlite.field.DataType
 import com.j256.ormlite.field.DatabaseField
 import com.j256.ormlite.field.ForeignCollectionField
 import com.j256.ormlite.table.DatabaseTable
@@ -32,7 +33,9 @@ data class Player(
     @DatabaseField(foreign = true, foreignAutoRefresh = true)
     var team: Team,
     @DatabaseField
-    val weight_pounds: Int?
+    val weight_pounds: Int?,
+    @DatabaseField
+    var order: Int = 0
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readInt(),
@@ -145,3 +148,20 @@ data class SeasonAverages(
     val min: String,
     val pts: Float
 )
+
+@DatabaseTable(tableName = "pages_meta")
+data class PagesMeta(
+    @DatabaseField
+    val current_page: Int,
+    @DatabaseField(id = true)
+    val total_pages: Int,
+    @DatabaseField(dataType= DataType.SERIALIZABLE)
+    val pages_read: ArrayList<Int>,
+    @DatabaseField(dataType= DataType.SERIALIZABLE)
+    val pages_spinner: ArrayList<Int>
+) {
+    // Constructor with no arguments so OrmLite can work with this class.
+    constructor() : this(0, 0, ArrayList(listOf(0)), ArrayList(listOf(1)))
+
+
+}

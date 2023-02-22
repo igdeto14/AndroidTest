@@ -20,12 +20,14 @@ class PlayerDbHelper(context: Context) : OrmLiteSqliteOpenHelper(context, DATABA
     // Definition of Dao objects that will perform CRUD operations.
     private var playerDao: Dao<Player, Int>? = null
     private var teamDao: Dao<Team, Int>? = null
+    private var pmDao: Dao<PagesMeta, Int>? = null
 
     // Creation of the tables on create.
     override fun onCreate(database: SQLiteDatabase?, connectionSource: ConnectionSource?) {
         try {
             TableUtils.createTable(connectionSource, Player::class.java)
             TableUtils.createTable(connectionSource, Team::class.java)
+            TableUtils.createTable(connectionSource, PagesMeta::class.java)
         } catch (e: SQLException) {
             e.printStackTrace()
         }
@@ -36,6 +38,7 @@ class PlayerDbHelper(context: Context) : OrmLiteSqliteOpenHelper(context, DATABA
         try {
             TableUtils.dropTable<Player, Any>(connectionSource, Player::class.java, true)
             TableUtils.dropTable<Team, Any>(connectionSource, Team::class.java, true)
+            TableUtils.dropTable<PagesMeta, Any>(connectionSource, PagesMeta::class.java, true)
             onCreate(database, connectionSource)
         } catch (e: SQLException) {
             e.printStackTrace()
@@ -56,5 +59,13 @@ class PlayerDbHelper(context: Context) : OrmLiteSqliteOpenHelper(context, DATABA
             teamDao = DaoManager.createDao(connectionSource, Team::class.java)
         }
         return teamDao as Dao<Team, Int>
+    }
+
+    // Method that returns Dao object corresponding to pages_meta table.
+    fun getPmDao(): Dao<PagesMeta, Int> {
+        if (pmDao == null) {
+            pmDao = DaoManager.createDao(connectionSource, PagesMeta::class.java)
+        }
+        return pmDao as Dao<PagesMeta, Int>
     }
 }

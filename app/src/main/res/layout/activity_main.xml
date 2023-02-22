@@ -35,14 +35,20 @@
                 android:id="@+id/tvPg"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:layout_marginStart="22dp"/>
+                android:textSize="18sp"
+                android:layout_marginStart="12dp"/>
             <Spinner
                 android:id="@+id/spinner"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:layout_margin="12dp"
                 android:textSize="16sp"
-                android:padding="0dp"/>
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:background="?attr/colorSecondary"
+                android:dropDownWidth="48dp"/>
             <ImageButton
                 android:id="@+id/btnNext"
                 android:layout_width="wrap_content"

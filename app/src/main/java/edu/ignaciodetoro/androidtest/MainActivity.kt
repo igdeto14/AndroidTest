@@ -1,9 +1,12 @@
 package edu.ignaciodetoro.androidtest
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.*
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -22,11 +25,13 @@ class MainActivity : AppCompatActivity() {
     private var totalPages = 1
     private lateinit var playerDao: Dao<Player, Int>
     private lateinit var teamDao: Dao<Team, Int>
+    private lateinit var pmDao: Dao<PagesMeta, Int>
     private val loadTxt = "Loading..."
     private val pageTxt = "Page"
     var pageNumbers = ArrayList<Int>()
     private lateinit var adapterSp: ArrayAdapter<Int>
-    private lateinit var playersTemp: ArrayList<Player>
+    private var pagesRead = ArrayList<Int>(listOf(0))
+    private var pmeta: PagesMeta = PagesMeta()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +51,12 @@ class MainActivity : AppCompatActivity() {
         val dbHelper = PlayerDbHelper(this)
         playerDao = dbHelper.getPlayerDao()
         teamDao = dbHelper.getTeamDao()
+        pmDao = dbHelper.getPmDao()
 
+
+
+        // Establishing the adapter in the Spinner.
+        val pageSpinner = findViewById<Spinner>(R.id.spinner)
         // Screen rotation
         @Suppress("DEPRECATION")
         if (savedInstanceState != null) {
@@ -54,6 +64,7 @@ class MainActivity : AppCompatActivity() {
             currentPage = savedInstanceState.getInt("currentPage")
             totalPages = savedInstanceState.getInt("totalPages")
             pageNumbers = savedInstanceState.getIntegerArrayList("pageNumbers") as ArrayList<Int>
+            pagesRead = savedInstanceState.getIntegerArrayList("pagesRead") as ArrayList<Int>
         } else {
             // In case screen created (no rotation).
             // Showing Splash Screen Fragment.
@@ -65,18 +76,22 @@ class MainActivity : AppCompatActivity() {
 
             // Adding first item to the Spinner item array.
             pageNumbers.add(1)
+
+            val dbPages = pmDao.queryBuilder().orderBy("total_pages", false).queryForFirst()
+            if (dbPages!=null) {
+                pagesRead = dbPages.pages_read
+                pageNumbers = dbPages.pages_spinner
+                currentPage = dbPages.current_page
+                totalPages = dbPages.total_pages
+            }
         }
-
-        // Loading data from API
-        loadMoreData()
-
         // Create ArrayAdapter for the Spinner.
         adapterSp = ArrayAdapter(this, android.R.layout.simple_spinner_item, pageNumbers)
         adapterSp.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-
-        // Establishing the adapter in the Spinner.
-        val pageSpinner = findViewById<Spinner>(R.id.spinner)
         pageSpinner.adapter = adapterSp
+
+        // Loading data from API
+        pageSpinner.setSelection(currentPage-1)
 
         // If we choose an item from the Spinner, its corresponding page will be loaded.
         pageSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -114,10 +129,12 @@ class MainActivity : AppCompatActivity() {
 
     // Load data from API and saving/updating to database.
     private fun loadMoreData() {
-            val tvPg = findViewById<TextView>(R.id.tvPg)
-
-            val limit = 25
+        val tvPg = findViewById<TextView>(R.id.tvPg)
+        val limit = 25                        // per page players limit.
+        val offset = (currentPage-1) * limit // player order offset.
+        if (!pagesRead.contains(currentPage)) {
             tvPg.text = loadTxt
+            tvPg.textSize = 10.0f
             val retrofit = Retrofit.Builder()
                 .baseUrl("https://www.balldontlie.io/api/v1/")
                 .addConverterFactory(GsonConverterFactory.create())
@@ -135,24 +152,26 @@ class MainActivity : AppCompatActivity() {
                             for (i in 2..response.body()!!.meta.total_pages) {
                                 pageNumbers.add(i)
                             }
+                            totalPages = response.body()!!.meta.total_pages
                             adapterSp.notifyDataSetChanged()
                         }
 
                         // Adding players to database.
                         val playersResponse = response.body()!!
-                        totalPages = playersResponse.meta.total_pages
-                        playersTemp = playersResponse.data as ArrayList<Player>
                         playerAdapter.addPlayers(playersResponse.data)
-                        for (player in playersResponse.data) {
+                        for ((i, player) in playersResponse.data.withIndex()) {
+                            player.order = offset + i
                             playerDao.createOrUpdate(player)
                             teamDao.createOrUpdate(player.team)
                         }
 
+                        // Set page read
+                        pagesRead.add(currentPage)
+
                         // Update buttons states and textview.
                         tvPg.text = pageTxt
+                        tvPg.textSize = 18.0f
                         tintChange(currentPage)
-
-
                     } else {
                         Log.e("MainActivity", "Error: ${response.message()}")
                     }
@@ -162,6 +181,19 @@ class MainActivity : AppCompatActivity() {
                     Log.e("MainActivity", "Error: ${t.message}")
                 }
             })
+        } else{
+            // Get players from database
+            val dbPlayers = playerDao.queryBuilder()
+                .where().between("order", offset, offset+limit-1)
+                .query()
+            tintChange(currentPage)
+            playerAdapter.addPlayers(dbPlayers)
+            tvPg.text = pageTxt
+            tvPg.textSize = 18.0f
+        }
+
+        // Save Page info
+        pmDao.createOrUpdate(PagesMeta(currentPage, totalPages, pagesRead, pageNumbers))
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -169,7 +201,8 @@ class MainActivity : AppCompatActivity() {
         outState.putInt("currentPage", currentPage)
         outState.putInt("totalPages", totalPages)
         outState.putIntegerArrayList("pageNumbers", pageNumbers)
-        outState.putParcelableArrayList("playersTemp", playersTemp)
+        outState.putIntegerArrayList("pagesRead", pagesRead)
+        pmeta = PagesMeta(currentPage, totalPages, pagesRead, pageNumbers)
     }
 
     private fun tintChange(currentPage: Int){
@@ -204,6 +237,25 @@ class MainActivity : AppCompatActivity() {
                 btnPrev.isEnabled = true
                 btnPrev.setColorFilter(color)
             }
+        }
+    }
+
+    // Boton action bar refresh
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu, menu)
+        return true
+    }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_refresh -> {
+                // Aquí puedes agregar el código para actualizar la actividad
+                val intent = Intent(applicationContext, MainActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                startActivity(intent)
+                finish()
+                return true
+            }
+            else -> return super.onOptionsItemSelected(item)
         }
     }
 }
