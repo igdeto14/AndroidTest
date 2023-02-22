@@ -4,6 +4,7 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -52,14 +53,18 @@ class SplashScreenFragment : Fragment() {
         fadeOut.interpolator = LinearInterpolator()
         fadeOut.startDelay = 1800
 
+        // Sound added
+        MediaPlayer.create(context, R.raw.ball).start()
+
         // Animations combined.
         val transition = AnimatorSet()
         transition.playTogether(scale, fadeOut)
         transition.start()
+
         Handler(Looper.getMainLooper()).postDelayed({
             actionBar.show()
-            // Destruir el fragment
-            fragmentManager?.beginTransaction()?.remove(this)?.commit()
+            // Destroy fragment
+            parentFragmentManager.beginTransaction().remove(this).commit()
         }, splashTimeOut)
     }
 }
