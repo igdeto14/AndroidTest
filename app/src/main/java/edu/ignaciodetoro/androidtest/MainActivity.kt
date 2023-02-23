@@ -1,5 +1,6 @@
 package edu.ignaciodetoro.androidtest
 
+import android.content.DialogInterface
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -9,6 +10,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import retrofit2.Call
@@ -19,19 +21,21 @@ import retrofit2.converter.gson.GsonConverterFactory
 import com.j256.ormlite.dao.Dao
 
 class MainActivity : AppCompatActivity() {
+    // RecyclerView and Database vars
     private lateinit var recyclerView: RecyclerView
     private lateinit var playerAdapter: PlayerAdapter
-    private var currentPage = 1
-    private var totalPages = 1
+    private lateinit var dbHelper: PlayerDbHelper
     private lateinit var playerDao: Dao<Player, Int>
     private lateinit var teamDao: Dao<Team, Int>
     private lateinit var pmDao: Dao<PagesMeta, Int>
-    private val loadTxt = "Loading..."
-    private val pageTxt = "Page"
+    // Pagination info vars
+    private var currentPage = 1
+    private var totalPages = 1
     var pageNumbers = ArrayList<Int>()
     private lateinit var adapterSp: ArrayAdapter<Int>
     private var pagesRead = ArrayList<Int>(listOf(0))
-    private var pmeta: PagesMeta = PagesMeta()
+    private val loadTxt = "Loading..."
+    private val pageTxt = "Page"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,25 +51,8 @@ class MainActivity : AppCompatActivity() {
         // Associating LinearLayoutManager to RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // Initialize database and Dao objects.
-        val dbHelper = PlayerDbHelper(this)
-        playerDao = dbHelper.getPlayerDao()
-        teamDao = dbHelper.getTeamDao()
-        pmDao = dbHelper.getPmDao()
-
-
-
-        // Establishing the adapter in the Spinner.
-        val pageSpinner = findViewById<Spinner>(R.id.spinner)
-        // Screen rotation
-        @Suppress("DEPRECATION")
-        if (savedInstanceState != null) {
-            // Retrieve data before rotation.
-            currentPage = savedInstanceState.getInt("currentPage")
-            totalPages = savedInstanceState.getInt("totalPages")
-            pageNumbers = savedInstanceState.getIntegerArrayList("pageNumbers") as ArrayList<Int>
-            pagesRead = savedInstanceState.getIntegerArrayList("pagesRead") as ArrayList<Int>
-        } else {
+        // Screen rotation ignores splash screen
+        if (savedInstanceState == null) {
             // In case screen created (no rotation).
             // Showing Splash Screen Fragment.
             val fragment = SplashScreenFragment()
@@ -73,18 +60,29 @@ class MainActivity : AppCompatActivity() {
             fragmentTransaction.replace(R.id.recycler_view_container, fragment)
             fragmentTransaction.addToBackStack(null)
             fragmentTransaction.commit()
-
-            // Adding first item to the Spinner item array.
-            pageNumbers.add(1)
-
-            val dbPages = pmDao.queryBuilder().orderBy("total_pages", false).queryForFirst()
-            if (dbPages!=null) {
-                pagesRead = dbPages.pages_read
-                pageNumbers = dbPages.pages_spinner
-                currentPage = dbPages.current_page
-                totalPages = dbPages.total_pages
-            }
         }
+
+
+        // Initialize database and Dao objects.
+        dbHelper = PlayerDbHelper(this)
+        playerDao = dbHelper.getPlayerDao()
+        teamDao = dbHelper.getTeamDao()
+        pmDao = dbHelper.getPmDao()
+
+        // Check if database exist, if affirmative fills page info vars.
+        val dbPages = pmDao.queryBuilder().orderBy("total_pages", false).queryForFirst()
+        if (dbPages!=null) {
+            pagesRead = dbPages.pages_read
+            pageNumbers = dbPages.pages_spinner
+            currentPage = dbPages.current_page
+            totalPages = dbPages.total_pages
+        } else {
+            // Adding first item to Spinner item array in case database is empty.
+            pageNumbers.add(1)
+        }
+        // Establishing the adapter in the Spinner.
+        val pageSpinner = findViewById<Spinner>(R.id.spinner)
+
         // Create ArrayAdapter for the Spinner.
         adapterSp = ArrayAdapter(this, android.R.layout.simple_spinner_item, pageNumbers)
         adapterSp.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -104,21 +102,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Defining previous/next buttons.
+        // Defining previous/next buttons and Page textview.
         val btnPrev = findViewById<ImageButton>(R.id.btnPrev)
         val btnNext = findViewById<ImageButton>(R.id.btnNext)
         val tvPg = findViewById<TextView>(R.id.tvPg)
         tvPg.text = pageTxt
         tintChange(currentPage)
         btnPrev.setOnClickListener {
-            tvPg.text = loadTxt
             if (currentPage > 1) {
                 currentPage--
                 pageSpinner.setSelection(currentPage-1)
             }
         }
         btnNext.setOnClickListener {
-            tvPg.text = loadTxt
             if (currentPage < totalPages) {
                 currentPage++
                 pageSpinner.setSelection(currentPage-1)
@@ -133,13 +129,17 @@ class MainActivity : AppCompatActivity() {
         val limit = 25                        // per page players limit.
         val offset = (currentPage-1) * limit // player order offset.
         if (!pagesRead.contains(currentPage)) {
+            // Page textview set on "Loading..." until players show in RecyclerView.
             tvPg.text = loadTxt
             tvPg.textSize = 10.0f
+
+            // Create Retrofit client.
             val retrofit = Retrofit.Builder()
                 .baseUrl("https://www.balldontlie.io/api/v1/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
 
+            // Make API call to get players.
             val service = retrofit.create(ApiService::class.java)
             service.getPlayers(currentPage, limit).enqueue(object : Callback<PlayerResponse> {
                 override fun onResponse(
@@ -156,7 +156,7 @@ class MainActivity : AppCompatActivity() {
                             adapterSp.notifyDataSetChanged()
                         }
 
-                        // Adding players to database.
+                        // Adding players to database in "order".
                         val playersResponse = response.body()!!
                         playerAdapter.addPlayers(playersResponse.data)
                         for ((i, player) in playersResponse.data.withIndex()) {
@@ -165,7 +165,7 @@ class MainActivity : AppCompatActivity() {
                             teamDao.createOrUpdate(player.team)
                         }
 
-                        // Set page read
+                        // Set page as read.
                         pagesRead.add(currentPage)
 
                         // Update buttons states and textview.
@@ -176,7 +176,6 @@ class MainActivity : AppCompatActivity() {
                         Log.e("MainActivity", "Error: ${response.message()}")
                     }
                 }
-
                 override fun onFailure(call: Call<PlayerResponse>, t: Throwable) {
                     Log.e("MainActivity", "Error: ${t.message}")
                 }
@@ -186,25 +185,19 @@ class MainActivity : AppCompatActivity() {
             val dbPlayers = playerDao.queryBuilder()
                 .where().between("order", offset, offset+limit-1)
                 .query()
+
+            // Update buttons states, players and textview.
             tintChange(currentPage)
             playerAdapter.addPlayers(dbPlayers)
             tvPg.text = pageTxt
             tvPg.textSize = 18.0f
         }
 
-        // Save Page info
+        // Save Page info.
         pmDao.createOrUpdate(PagesMeta(currentPage, totalPages, pagesRead, pageNumbers))
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putInt("currentPage", currentPage)
-        outState.putInt("totalPages", totalPages)
-        outState.putIntegerArrayList("pageNumbers", pageNumbers)
-        outState.putIntegerArrayList("pagesRead", pagesRead)
-        pmeta = PagesMeta(currentPage, totalPages, pagesRead, pageNumbers)
-    }
-
+    // Method that disables/enables buttons depending on current page.
     private fun tintChange(currentPage: Int){
         val btnPrev = findViewById<ImageButton>(R.id.btnPrev)
         val btnNext = findViewById<ImageButton>(R.id.btnNext)
@@ -240,7 +233,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Boton action bar refresh
+    // Action bar refresh database button.
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
         return true
@@ -248,11 +241,21 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_refresh -> {
-                // Aquí puedes agregar el código para actualizar la actividad
-                val intent = Intent(applicationContext, MainActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                startActivity(intent)
-                finish()
+                // Confirmation dialog.
+                val builder = AlertDialog.Builder(this)
+                    .setMessage("Do you want to refresh the database?")
+                    .setPositiveButton("Refresh"){ _: DialogInterface, _: Int ->
+                        // Restart database and app.
+                        dbHelper.close()
+                        this.deleteDatabase(PlayerDbHelper.DATABASE_NAME)
+                        val intent = Intent(applicationContext, MainActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        startActivity(intent)
+                        finish()
+                    }
+                    .setNegativeButton("Cancel"){ _: DialogInterface, _: Int ->
+                    }
+                builder.show()
                 return true
             }
             else -> return super.onOptionsItemSelected(item)

@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Seccion 1: Player information -->
+        <!-- Section 1: Player information -->
         <LinearLayout
             android:id="@+id/player_info_container"
             android:layout_width="match_parent"
@@ -26,20 +26,23 @@
                 android:layout_height="wrap_content"
                 android:text="@string/player_info"
                 android:gravity="center"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSecondary"/>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginTop="8dp"
-                android:background="@color/grey_300" />
+                android:layout_marginBottom="8dp"
+                android:background="@android:color/darker_gray" />
 
             <TextView
                 android:id="@+id/player_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="20sp" />
+                android:textSize="20sp"
+                android:textColor="?attr/colorOnSecondary"/>
 
             <TextView
                 android:id="@+id/player_position"
@@ -61,7 +64,7 @@
 
         </LinearLayout>
 
-        <!-- Seccion 2: Team information -->
+        <!-- Section 2: Team information -->
         <LinearLayout
             android:id="@+id/team_info_container"
             android:layout_width="match_parent"
@@ -75,20 +78,23 @@
                 android:layout_height="wrap_content"
                 android:text="@string/team_info"
                 android:gravity="center"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSecondary" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginTop="8dp"
-                android:background="@color/grey_300" />
+                android:layout_marginBottom="8dp"
+                android:background="@android:color/darker_gray" />
 
             <TextView
                 android:id="@+id/team_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                android:textColor="?attr/colorOnSecondary" />
 
             <TextView
                 android:id="@+id/team_abbreviation"
@@ -110,7 +116,7 @@
                 android:padding="16dp"
                 tools:ignore="ContentDescription" />
 
-            <!-- Seccion 3: Player performance -->
+            <!-- Section 3: Player performance -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="2dp"
@@ -122,9 +128,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/avg_info"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textStyle="bold"
-                android:padding="16dp" />
+                android:padding="16dp"
+                android:textColor="?attr/colorOnSecondary" />
 
             <View
                 android:layout_width="match_parent"
@@ -138,21 +145,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/games_played"
-                android:textSize="16sp" />
+                android:textSize="18sp" />
 
             <TextView
                 android:id="@+id/season_mins"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/mins"
-                android:textSize="16sp" />
+                android:textSize="18sp" />
 
             <TextView
                 android:id="@+id/season_points"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/pts"
-                android:textSize="16sp" />
+                android:textSize="18sp" />
 
         </LinearLayout>
     </LinearLayout>

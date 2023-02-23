@@ -13,8 +13,6 @@ import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -67,7 +65,7 @@ class PlayerDetailFragment : Fragment() {
         val api = retrofit.create(ApiService::class.java)
 
         // Make API call to get season averages to fill season average info.
-        api.getSeasonAverages(player.id, 2018).enqueue(
+        api.getSeasonAverages(player.id, 2022).enqueue(
             object : Callback<SeasonAverageResponse> {
                 override fun onResponse(call: Call<SeasonAverageResponse>, response: Response<SeasonAverageResponse>) {
                     if (response.isSuccessful) {

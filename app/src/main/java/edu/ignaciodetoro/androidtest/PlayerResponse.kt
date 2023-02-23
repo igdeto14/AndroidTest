@@ -7,8 +7,9 @@ import com.j256.ormlite.field.DatabaseField
 import com.j256.ormlite.field.ForeignCollectionField
 import com.j256.ormlite.table.DatabaseTable
 
-// Player and Team will be mapped to players and teams tables in ORMLite.
-// We need to make them Parcelable so they can be passed between fragments/activities.
+// Player, Team and PagesMeta will be mapped to players, teams and pages_meta tables in ORMLite.
+// We need to make Player and Team Parcelable so they can be passed between fragments/activities.
+// PagesMeta contains pagination history info.
 // The rest of the classes are used to retrieve json responses from GET requests.
 
 data class PlayerResponse(

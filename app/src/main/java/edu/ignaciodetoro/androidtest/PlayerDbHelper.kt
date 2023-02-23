@@ -13,7 +13,7 @@ class PlayerDbHelper(context: Context) : OrmLiteSqliteOpenHelper(context, DATABA
 
     // Database name and version definition.
     companion object {
-        private const val DATABASE_NAME = "players.db"
+        const val DATABASE_NAME = "players.db"
         private const val DATABASE_VERSION = 1
     }
 
